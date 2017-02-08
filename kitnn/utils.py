@@ -16,8 +16,9 @@ class SerializationMixin:
 
 
 def make_batch(images):
-    batch = torch.from_numpy(np.stack(images, axis=3).transpose((3, 2, 0, 1)))
-    batch = Variable(batch)
+    batch = torch.from_numpy(np.stack(images, axis=3)
+                             .transpose((3, 2, 0, 1))
+                             .astype(dtype=np.float32))
     return batch
 
 
@@ -50,3 +51,8 @@ def from_imagenet(image):
     image += IMAGENET_MEAN[None, None, :]
     image = image[:, :, [2, 1, 0]]
     return image
+
+
+def softmax2d(x):
+    e_x = np.exp(x - np.max(x, axis=-1)[:, :, None])
+    return e_x / e_x.sum(axis=-1)[:, :, None]
