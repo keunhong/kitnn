@@ -68,8 +68,9 @@ def compute_remapped_probs(probs: np.ndarray):
         new_idx = REMAPPED_SUBSTANCES.index(subst_new)
         remapped[:, :, new_idx] += probs[:, :, old_idx]
     #bg_thres = np.median(remapped.max(axis=2))
-    # bg_thres = np.percentile(remapped.max(axis=2), 33)
+    # bg_thres = np.percentile(remapped.max(axis=2), 10)
     remapped[remapped[:,:,:4].max(axis=2) < 0.2, bg_idx] = 1.0
+    # remapped[remapped[:,:,:4].max(axis=2) < bg_thres, bg_idx] = 0.5
     remapped = softmax2d(remapped)
     return remapped
 
@@ -103,9 +104,9 @@ def combine_probs(prob_maps, image, remap=False):
     for prob_map in prob_maps:
         if remap:
             prob_map = compute_remapped_probs(prob_map)
-        prob_map = resize(prob_map, map_sum.shape[:2], order=3)
+        prob_map = resize(prob_map, map_sum.shape[:2])
         map_sum += prob_map
-    return softmax2d(map_sum / len(prob_maps))
+    return map_sum / len(prob_maps)
 
 
 def compute_probs_multiscale(image, mincnet,
@@ -130,7 +131,7 @@ def compute_probs_multiscale(image, mincnet,
 
 def compute_probs_crf(
         image, prob_map, theta_p=0.1, theta_L=20.0, theta_ab=5.0):
-    image_lab = rgb2lab(resize(image, prob_map.shape[:2]))
+    image_lab = rgb2lab(resize(image, prob_map.shape[:2], order=3))
 
     p_y, p_x = np.mgrid[0:image_lab.shape[0], 0:image_lab.shape[1]]
 
