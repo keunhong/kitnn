@@ -1,7 +1,11 @@
+import logging
 import numpy as np
 import torch
 
 IMAGENET_MEAN = np.array([0.40760392, 0.45795686, 0.48501961])
+
+
+logger = logging.getLogger(__name__)
 
 
 class SerializationMixin:
@@ -23,11 +27,11 @@ def make_batch(images):
 def load_module_npy(module, data):
     for name, child in module._modules.items():
         if name in data:
-            print("Loading {} => {}".format(name, child))
+            logger.info("Loading {} => {}".format(name, child))
             weight_shape = tuple(child.weight.size())
             weights = data[name]['weights']
             if weight_shape != weights.shape:
-                print("\tReshaping weight {} => {}"
+                logger.info("\tReshaping weight {} => {}"
                       .format(weights.shape, weight_shape))
                 weights = weights.reshape(weight_shape)
             weights = torch.from_numpy(weights)
