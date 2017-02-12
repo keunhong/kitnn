@@ -52,6 +52,7 @@ REMAPPED_SUBSTANCES = [
 ]
 SUBST_MAPPING = OrderedDict([
     ('fabric', 'fabric'),
+    ('carpet', 'fabric'),
     ('leather', 'leather'),
     ('wood', 'wood'),
     ('metal', 'shiny'),
