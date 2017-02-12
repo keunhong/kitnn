@@ -2,18 +2,17 @@ import logging
 from collections import OrderedDict
 
 import numpy as np
-import torch
+from pydensecrf import densecrf
+from skimage.color import rgb2lab
 from torch import nn
 from torch.autograd import Variable
-from skimage.color import rgb2lab
-from pydensecrf import densecrf
-from toolbox.images import resize
+
+from kitnn.models.alexnet import AlexNet
+from kitnn.models.vgg import VGG16
 from kitnn.modules import SelectiveSequential
 from kitnn.utils import (SerializationMixin, load_module_npy, make_batch,
                          softmax2d)
-from kitnn.models.vgg import VGG16
-from kitnn.models.alexnet import AlexNet
-
+from toolbox.images import resize
 
 logger = logging.getLogger(__name__)
 

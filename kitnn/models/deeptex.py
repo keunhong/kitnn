@@ -1,8 +1,4 @@
-import numpy as np
 import torch
-from torch import nn
-from kitnn.utils import load_module_npy, to_imagenet, make_batch
-
 
 LAYERS = ['conv1_1', 'pool1', 'pool2', 'pool3', 'pool4', 'pool5']
 

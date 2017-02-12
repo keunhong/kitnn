@@ -1,10 +1,8 @@
-from typing import Dict
 from collections import OrderedDict
 
 import numpy as np
-
-import torch
 from torch import nn
+
 from kitnn.modules import SelectiveSequential
 from kitnn.utils import load_module_npy, SerializationMixin
 

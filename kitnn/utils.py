@@ -1,7 +1,5 @@
 import numpy as np
 import torch
-from torch.autograd import Variable
-
 
 IMAGENET_MEAN = np.array([0.40760392, 0.45795686, 0.48501961])
 
