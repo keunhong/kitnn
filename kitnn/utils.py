@@ -17,10 +17,13 @@ class SerializationMixin:
             torch.save(self, path)
 
 
-def make_batch(images):
-    batch = torch.from_numpy(np.stack(images, axis=3)
-                             .transpose((3, 2, 0, 1))
-                             .astype(dtype=np.float32))
+def make_batch(images, flatten=False):
+    batch = np.stack(images, axis=3) \
+        .transpose((3, 2, 0, 1)) \
+        .astype(dtype=np.float32)
+    batch = torch.from_numpy(batch).contiguous()
+    if flatten:
+        batch.resize_(*batch.size()[:2], batch.size(2) * batch.size(3))
     return batch
 
 
