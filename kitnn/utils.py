@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Variable
 
+from kitnn.functions import StablePow
 
 logger = logging.getLogger(__name__)
 
@@ -114,34 +115,38 @@ def batch_frobenius_norm(batch):
     return (batch ** 2).sum(dim=2).squeeze().sqrt()
 
 
-def _hist_normal(x, mu, sigma):
+def hist_kern_normal(x, mu, sigma):
     return 1.0 / (sigma * math.sqrt(2*math.pi)) * torch.exp(-(x - mu)**2 / (2*sigma**2))
 
 
-def _hist_parabola(batch, bin_val, bin_width):
-    return 1 - torch.abs(batch - bin_val)
+def hist_kern_l1(batch, bin_val, span):
+    k = 1 - torch.abs(batch - bin_val) / span
+    k = (k >= 0).float() * k
+    return k
 
 
-def _hist_piecewise(batch, bin_val, bin_width):
-    return ((batch - bin_val) <= bin_width/2) * ((batch - bin_val) >= -bin_width/2)
+def hist_kern_l2(batch, bin_val, span):
+    return 1 - (batch - bin_val).pow(2)
 
 
-def batch_histogram(batch, bins=32, mask_batch=None):
+def hist_kern_const(batch, bin_val, span):
+    return ((batch - bin_val) <= span / 2) * ((batch - bin_val) >= -span / 2)
+
+
+def batch_histogram(batch, bins=32, mask_batch=None,
+                    kern_func=hist_kern_const):
     batch_size = (*batch.size()[:2], batch.size(2) * batch.size(3))
     hists = Variable(torch.zeros(batch.size(0), 3, bins).cuda())
     binvals = Variable(torch.linspace(0, 1, bins).cuda())
     # Expand values so we compute histogram in parallel.
     binvals = binvals.view(1, 1, 1, bins).expand(*batch_size, bins)
     batch = batch.view(*batch_size, 1).expand(*batch_size, bins)
-    # hist_responses = normal(batch, binvals, 1/(bins/2))
-    hist_responses = _hist_piecewise(batch, binvals, 1 / (bins)).float()
+    hist_responses = kern_func(batch, binvals).float()
     if mask_batch is not None:
         mb_size = (mask_batch.size(0), mask_batch.size(1), mask_batch.size(2) * mask_batch.size(3))
         mask_batch = mask_batch.view(*mb_size, 1).expand(*batch_size, bins)
         hist_responses = hist_responses * mask_batch
-    # RootSIFT transformation.
-    hist = hist_responses.sum(dim=2)[:, :, 0, :] + 0.1
-    #hist /= hist.sum(dim=2).expand(hist.size())
-    #hist = torch.sqrt(hist)
-    #hist = hist / torch.norm(hist).expand(*hist.size())
+    hist = hist_responses.sum(dim=2)[:, :, 0, :]
+    # L1 normalize.
+    hist /= hist.sum(dim=2).expand(hist.size())
     return hist

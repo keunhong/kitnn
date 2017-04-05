@@ -2,6 +2,10 @@ import torch
 from torch.autograd import Variable
 import numpy as np
 
+from kitnn.utils import batch_to_images, make_batch
+from toolbox.colors import hist_match
+from kitnn.functions import StablePow
+
 xyz_from_rgb = Variable(torch.FloatTensor([
     [0.412453, 0.357580, 0.180423],
     [0.212671, 0.715160, 0.072169],
@@ -87,13 +91,14 @@ def xyz_to_lab(xyz, normalized=False):
     xyz_pixels = flatten_batch(xyz)
     xyz_normalized_pixels = \
         xyz_pixels / d65_norm.view(1, 3, 1).expand(*xyz_pixels.size())
+    print(xyz_normalized_pixels.data.min(), xyz_normalized_pixels.data.max())
 
     epsilon = 6.0 / 29.0
     linear_mask = (xyz_normalized_pixels <= (epsilon ** 3)).float()
     exponential_mask = (xyz_normalized_pixels > (epsilon ** 3)).float()
     fxfyfz_pixels = (
         linear_mask * (xyz_normalized_pixels / (3 * epsilon ** 2) + 4 / 29)
-        + exponential_mask * (xyz_normalized_pixels ** (1/3)))
+        + exponential_mask * (xyz_normalized_pixels.pow(1/3)))
 
     lab_pixels = torch.baddbmm(
         lab_conv_bias.view(1, 3, 1).expand(*fxfyfz_pixels.size()),
@@ -155,3 +160,23 @@ def denormalize_lab(lab):
             - lab_bias.view(1, 3, 1).expand(*lab.size())))
     return lab.view(*lab.size())
 
+
+def hist_match_batch(exemplar_batch, target_batch, exemplar_mask=None,
+                     target_mask=None, lab=True):
+    if lab:
+        exemplar_batch = rgb_to_lab(exemplar_batch, normalized=True)
+        target_batch = rgb_to_lab(target_batch, normalized=True)
+    exemplar_patches = batch_to_images(exemplar_batch)
+    target_patches = batch_to_images(target_batch)
+    transferred_patches = []
+    for i in range(exemplar_batch.size(0)):
+        transferred = np.zeros(target_patches[i].shape)
+        for chan in range(3):
+            transferred[:, :, chan] = hist_match(target_patches[i][:, :, chan], exemplar_patches[i][:, :, chan],
+                                                 target_mask, exemplar_mask)
+        transferred_patches.append(transferred)
+    transferred_batch = Variable(make_batch(transferred_patches).cuda())
+    transferred = transferred_batch.clamp(0, 1)
+    if lab:
+        transferred = lab_to_rgb(transferred, normalized=True)
+    return transferred
