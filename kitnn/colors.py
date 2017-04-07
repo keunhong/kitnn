@@ -91,7 +91,6 @@ def xyz_to_lab(xyz, normalized=False):
     xyz_pixels = flatten_batch(xyz)
     xyz_normalized_pixels = \
         xyz_pixels / d65_norm.view(1, 3, 1).expand(*xyz_pixels.size())
-    print(xyz_normalized_pixels.data.min(), xyz_normalized_pixels.data.max())
 
     epsilon = 6.0 / 29.0
     linear_mask = (xyz_normalized_pixels <= (epsilon ** 3)).float()
