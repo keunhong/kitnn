@@ -160,8 +160,9 @@ def denormalize_lab(lab):
     return lab.view(*lab.size())
 
 
-def hist_match_batch(exemplar_batch, target_batch, exemplar_mask=None,
-                     target_mask=None, lab=True):
+def hist_match_batch(exemplar_batch, target_batch,
+                     exemplar_masks=None,
+                     target_masks=None, lab=True):
     if lab:
         exemplar_batch = rgb_to_lab(exemplar_batch, normalized=True)
         target_batch = rgb_to_lab(target_batch, normalized=True)
@@ -170,9 +171,13 @@ def hist_match_batch(exemplar_batch, target_batch, exemplar_mask=None,
     transferred_patches = []
     for i in range(exemplar_batch.size(0)):
         transferred = np.zeros(target_patches[i].shape)
+        target_mask = None if target_masks is None else target_masks[i]
+        exemplar_mask = None if exemplar_masks is None else exemplar_masks[i]
         for chan in range(3):
-            transferred[:, :, chan] = hist_match(target_patches[i][:, :, chan], exemplar_patches[i][:, :, chan],
-                                                 target_mask, exemplar_mask)
+            transferred[:, :, chan] = hist_match(
+                target_patches[i][:, :, chan],
+                exemplar_patches[i][:, :, chan],
+                target_mask, exemplar_mask)
         transferred_patches.append(transferred)
     transferred_batch = Variable(make_batch(transferred_patches).cuda())
     transferred = transferred_batch.clamp(0, 1)

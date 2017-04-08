@@ -83,14 +83,17 @@ def softmax2d(x):
     return e_x / e_x.sum(axis=-1)[:, :, None]
 
 
-def batch_to_images(batch):
+def batch_to_images(batch, dtype=None):
     if len(batch.size()) == 4:
-        return batch.cpu().data.numpy().reshape(
-            batch.size(0), 3, batch.size(-2), batch.size(-1))\
+        array = batch.cpu().data.numpy().reshape(
+            batch.size(0), batch.size(1), batch.size(-2), batch.size(-1))\
             .transpose((0, 2, 3, 1))
     else:
-        return batch.cpu().data.numpy().reshape(
+        array = batch.cpu().data.numpy().reshape(
             batch.size(0), batch.size(-2), batch.size(-1)).transpose((0, 1, 2))
+    if dtype is not None:
+        return array.astype(dtype=dtype)
+    return array
 
 
 def gradient_image(batch):
