@@ -1,3 +1,4 @@
+import logging
 import torch
 from torch.autograd import Variable
 import numpy as np
@@ -5,6 +6,10 @@ import numpy as np
 from kitnn.utils import batch_to_images, make_batch
 from toolbox.colors import hist_match
 from kitnn.functions import StablePow
+
+
+logger = logging.getLogger(__name__)
+
 
 xyz_from_rgb = Variable(torch.FloatTensor([
     [0.412453, 0.357580, 0.180423],
@@ -173,11 +178,16 @@ def hist_match_batch(exemplar_batch, target_batch,
         transferred = np.zeros(target_patches[i].shape)
         target_mask = None if target_masks is None else target_masks[i]
         exemplar_mask = None if exemplar_masks is None else exemplar_masks[i]
-        for chan in range(3):
-            transferred[:, :, chan] = hist_match(
-                target_patches[i][:, :, chan],
-                exemplar_patches[i][:, :, chan],
-                target_mask, exemplar_mask)
+        if target_mask is not None and target_mask.sum() < 1:
+            logger.warning("Target mask is empty.")
+        elif exemplar_mask is not None and exemplar_mask.sum() < 1:
+            logger.warning("Exemplar mask is empty.")
+        else:
+            for chan in range(3):
+                transferred[:, :, chan] = hist_match(
+                    target_patches[i][:, :, chan],
+                    exemplar_patches[i][:, :, chan],
+                    target_mask, exemplar_mask)
         transferred_patches.append(transferred)
     transferred_batch = Variable(make_batch(transferred_patches).cuda())
     transferred = transferred_batch.clamp(0, 1)
