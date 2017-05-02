@@ -2,6 +2,7 @@ import math
 import logging
 import numpy as np
 import torch
+from scipy.misc import imread, imresize
 from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Variable
@@ -65,6 +66,9 @@ def load_module_npy(module, data):
 
 
 def to_imagenet(image):
+    if image.dtype == np.uint8:
+        image = image.astype(np.float32)
+        image /= 255.0
     image = image.astype(np.float32)
     image = image[:, :, [2, 1, 0]]
     image -= IMAGENET_MEAN[None, None, :]

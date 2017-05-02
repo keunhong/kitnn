@@ -131,7 +131,8 @@ def compute_probs_multiscale(image, mincnet,
 
 def compute_probs_crf(
         image, prob_map, theta_p=0.1, theta_L=20.0, theta_ab=5.0):
-    image_lab = rgb2lab(resize(image, prob_map.shape[:2], order=3))
+    resized_im = np.clip(resize(image, prob_map.shape[:2], order=3), 0, 1)
+    image_lab = rgb2lab(resized_im)
 
     p_y, p_x = np.mgrid[0:image_lab.shape[0], 0:image_lab.shape[1]]
 
