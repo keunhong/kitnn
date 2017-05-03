@@ -60,17 +60,18 @@ SUBST_MAPPING = OrderedDict([
 RT2 = np.sqrt(2)
 
 
-def compute_remapped_probs(probs: np.ndarray):
+def compute_remapped_probs(probs: np.ndarray, fg_mask=None):
     bg_idx = REMAPPED_SUBSTANCES.index('background')
     remapped = np.zeros((*probs.shape[:2], len(REMAPPED_SUBSTANCES)))
     for subst_old, subst_new in SUBST_MAPPING.items():
         old_idx = SUBSTANCES.index(subst_old)
         new_idx = REMAPPED_SUBSTANCES.index(subst_new)
         remapped[:, :, new_idx] += probs[:, :, old_idx]
-    #bg_thres = np.median(remapped.max(axis=2))
-    # bg_thres = np.percentile(remapped.max(axis=2), 10)
-    remapped[remapped[:,:,:4].max(axis=2) < 0.2, bg_idx] = 1.0
-    # remapped[remapped[:,:,:4].max(axis=2) < bg_thres, bg_idx] = 0.5
+    if fg_mask is None:
+        remapped[remapped[:,:,:4].max(axis=2) < 0.2, bg_idx] = 1.0
+    else:
+        remapped[~fg_mask, bg_idx] = 1.0
+        remapped[fg_mask, bg_idx] = 0.0
     remapped = softmax2d(remapped)
     return remapped
 
@@ -95,7 +96,7 @@ def resize_image(image, scale=1.0, l_size=256, l_frac=0.233, order=2):
     return resize(image, scale_shape, order=order)
 
 
-def combine_probs(prob_maps, image, remap=False):
+def combine_probs(prob_maps, image, remap=False, fg_mask=None):
     substances = REMAPPED_SUBSTANCES if remap else SUBSTANCES
     map_scale = 550 / min(image.shape[:2])
     map_sum = np.zeros((int(image.shape[0] * map_scale),
@@ -103,15 +104,16 @@ def combine_probs(prob_maps, image, remap=False):
                         len(substances)))
     for prob_map in prob_maps:
         if remap:
-            prob_map = compute_remapped_probs(prob_map)
+            resized_fg_mask = resize(fg_mask, prob_map.shape, order=0)
+            prob_map = compute_remapped_probs(
+                prob_map, fg_mask=resized_fg_mask)
         prob_map = resize(prob_map, map_sum.shape[:2])
         map_sum += prob_map
     return map_sum / len(prob_maps)
 
 
-def compute_probs_multiscale(image, mincnet,
-                             scales=list([RT2, 1.0, 1 / RT2]),
-                             use_cuda=True):
+def compute_probs_multiscale(
+        image, mincnet, scales=list([RT2, 1.0, 1 / RT2]), use_cuda=True):
     prob_maps = []
     feat_dicts = []
     for scale in scales:
