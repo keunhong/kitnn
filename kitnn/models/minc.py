@@ -46,7 +46,8 @@ REMAPPED_SUBSTANCES = [
     'fabric',
     'leather',
     'wood',
-    'shiny',
+    'metal',
+    'plastic',
     'background',
 ]
 SUBST_MAPPING = OrderedDict([
@@ -54,8 +55,8 @@ SUBST_MAPPING = OrderedDict([
     ('carpet', 'fabric'),
     ('leather', 'leather'),
     ('wood', 'wood'),
-    ('metal', 'shiny'),
-    ('plastic', 'shiny'),
+    ('metal', 'metal'),
+    ('plastic', 'plastic'),
 ])
 RT2 = np.sqrt(2)
 
