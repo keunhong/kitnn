@@ -33,7 +33,7 @@ class SerializationMixin:
 
     def save_pth(self, path):
         with open(path, 'wb') as f:
-            torch.save(self, path)
+            torch.save(self, f)
 
 
 def make_batch(images, flatten=False):
@@ -70,14 +70,15 @@ def to_imagenet(image):
         image = image.astype(np.float32)
         image /= 255.0
     image = image.astype(np.float32)
-    image = image[:, :, [2, 1, 0]]
-    image -= IMAGENET_MEAN[None, None, :]
-    image *= 255.0
+    image[:, :, :3] = image[:, :, [2, 1, 0]]
+    image[:, :, :3] -= IMAGENET_MEAN[None, None, :]
+    image[:, :, :3] *= 255.0
     return image
 
 
 def from_imagenet(image):
-    image += IMAGENET_MEAN[None, None, :]
+    image = image[:, :, :3] / 255.0
+    image[:, :, :3] += IMAGENET_MEAN[None, None, :]
     image = image[:, :, [2, 1, 0]]
     return image
 
