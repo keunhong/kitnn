@@ -72,12 +72,11 @@ def to_imagenet(image):
     image = image.astype(np.float32)
     image[:, :, :3] = image[:, :, [2, 1, 0]]
     image[:, :, :3] -= IMAGENET_MEAN[None, None, :]
-    image[:, :, :3] *= 255.0
     return image
 
 
 def from_imagenet(image):
-    image = image[:, :, :3] / 255.0
+    image = image[:, :, :3]
     image[:, :, :3] += IMAGENET_MEAN[None, None, :]
     image = image[:, :, [2, 1, 0]]
     return image
@@ -89,12 +88,15 @@ def softmax2d(x):
 
 
 def batch_to_images(batch, dtype=None):
+    batch = batch.cpu()
+    if not torch.is_tensor(batch):
+        batch = batch.data
     if len(batch.size()) == 4:
-        array = batch.cpu().data.numpy().reshape(
+        array = batch.numpy().reshape(
             batch.size(0), batch.size(1), batch.size(-2), batch.size(-1))\
             .transpose((0, 2, 3, 1))
     else:
-        array = batch.cpu().data.numpy().reshape(
+        array = batch.numpy().reshape(
             batch.size(0), batch.size(-2), batch.size(-1)).transpose((0, 1, 2))
     if dtype is not None:
         return array.astype(dtype=dtype)

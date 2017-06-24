@@ -18,6 +18,8 @@ class SelectiveSequential(nn.Module):
             x = module(x)
             if name in selection:
                 selection_dict[name] = x
+        if len(selection) == 0:
+            return x
         return x, selection_dict
 
 
