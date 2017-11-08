@@ -49,6 +49,6 @@ def batch_histogram(batch, bins=32, mask_batch=None,
         mb_size = (mask_batch.size(0), mask_batch.size(1), mask_batch.size(2) * mask_batch.size(3))
         mask_batch = mask_batch.view(*mb_size, 1).expand(*batch_size, bins)
         hist_responses = hist_responses * mask_batch
-    hist = hist_responses.sum(dim=2)[:, :, 0, :] + eps
-    hist /= hist.sum(dim=2).expand(hist.size()) # L1 normalize (to PDF).
+    hist = hist_responses.sum(dim=2).unsqueeze(2)[:, :, 0, :] + eps
+    hist /= hist.sum(dim=2).unsqueeze(2).expand(hist.size()) # L1 normalize (to PDF).
     return hist
