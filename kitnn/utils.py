@@ -76,7 +76,7 @@ def to_imagenet(image):
 
 
 def from_imagenet(image):
-    image = image[:, :, :3]
+    image = image.copy()[:, :, :3]
     image[:, :, :3] += IMAGENET_MEAN[None, None, :]
     image = image[:, :, [2, 1, 0]]
     return image
