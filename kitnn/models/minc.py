@@ -80,6 +80,7 @@ def preprocess_image(image):
     if image.max() > 1.0:
         logger.warning("Image has values larger than 1.0, this function"
                        " expects all images to be single between 0.0 and 1.0!")
+    image = image.copy()
     processed = image.astype(np.float32) * 255.0
     processed = processed[:, :, [2, 1, 0]]
     processed[:, :, 0] -= 104.0
