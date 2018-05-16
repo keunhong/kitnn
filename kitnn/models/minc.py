@@ -5,7 +5,6 @@ import numpy as np
 from pydensecrf import densecrf
 from skimage.color import rgb2lab
 from torch import nn
-from torch.autograd import Variable
 
 from kitnn.models.vgg import VGG16
 from kitnn.modules import SelectiveSequential, LRN
@@ -61,6 +60,8 @@ RT2 = np.sqrt(2)
 
 
 def compute_remapped_probs(probs: np.ndarray, fg_mask=None):
+    fg_inds = [i for i, s in enumerate(REMAPPED_SUBSTANCES)
+               if s != 'background']
     bg_idx = REMAPPED_SUBSTANCES.index('background')
     remapped = np.zeros((*probs.shape[:2], len(REMAPPED_SUBSTANCES)))
     for subst_old, subst_new in SUBST_MAPPING.items():
@@ -70,7 +71,7 @@ def compute_remapped_probs(probs: np.ndarray, fg_mask=None):
     if fg_mask is None:
         remapped[remapped[:,:,:4].max(axis=2) < 0.2, bg_idx] = 1.0
     else:
-        remapped[~fg_mask, bg_idx] = 1.0
+        remapped[~fg_mask, bg_idx] = 2.0
         remapped[fg_mask, bg_idx] = 0.0
     remapped = softmax2d(remapped)
     return remapped
@@ -124,8 +125,8 @@ def compute_probs_multiscale(
         batch_arr = make_batch([image_scaled])
         if use_cuda:
             batch_arr = batch_arr.cuda()
-        batch = Variable(batch_arr, volatile=True)
-        prob_map, sel_dict = mincnet(batch, selection=['fc8-20', 'softmax'])
+        # batch = Variable(batch_arr, volatile=True)
+        prob_map, sel_dict = mincnet(batch_arr, selection=['fc8-20', 'softmax'])
         prob_map_numpy = prob_map.cpu().data.numpy()[0].transpose((1, 2, 0))
         prob_maps.append(prob_map_numpy)
         feat_dicts.append(sel_dict)
@@ -133,7 +134,7 @@ def compute_probs_multiscale(
 
 
 def compute_probs_crf(
-        image, prob_map, theta_p=0.1, theta_L=20.0, theta_ab=5.0):
+        image, prob_map, theta_p=0.1, theta_L=10.0, theta_ab=5.0):
     resized_im = np.clip(resize(image, prob_map.shape[:2], order=3), 0, 1)
     image_lab = rgb2lab(resized_im)
 
@@ -150,8 +151,19 @@ def compute_probs_crf(
     unary = np.rollaxis(
         -np.log(prob_map), axis=-1).astype(dtype=np.float32, order='c')
     crf.setUnaryEnergy(np.reshape(unary, (prob_map.shape[-1], -1)))
+
+    compat = 3*np.array((
+        # f    l    w    m    p    b
+        (0.0, 1.0, 1.0, 1.0, 1.0, 3.0),  # fabric
+        (1.0, 0.0, 1.0, 1.0, 1.0, 3.0),  # leather
+        (1.0, 1.0, 0.0, 1.0, 1.0, 3.0),  # wood
+        (1.0, 1.0, 1.0, 0.0, 1.0, 3.0),  # metal
+        (1.0, 1.0, 1.0, 1.0, 0.0, 3.0),  # plastic
+        (1.5, 1.5, 1.5, 1.5, 1.5, 0.0),  # background
+    ), dtype=np.float32)
+
     crf.addPairwiseEnergy(np.reshape(feats, (feats.shape[0], -1)),
-                          compat=3)
+                          compat=compat)
 
     Q = crf.inference(20)
     Q = np.array(Q).reshape((-1, *prob_map.shape[:2]))
