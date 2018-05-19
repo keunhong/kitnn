@@ -72,7 +72,7 @@ def compute_remapped_probs(probs: np.ndarray, fg_mask=None):
         remapped[remapped[:,:,:4].max(axis=2) < 0.2, bg_idx] = 1.0
     else:
         remapped[~fg_mask, bg_idx] = 2.0
-        remapped[fg_mask, bg_idx] = 0.0
+        remapped[fg_mask, bg_idx] = -5
     remapped = softmax2d(remapped)
     return remapped
 
@@ -152,7 +152,7 @@ def compute_probs_crf(
         -np.log(prob_map), axis=-1).astype(dtype=np.float32, order='c')
     crf.setUnaryEnergy(np.reshape(unary, (prob_map.shape[-1], -1)))
 
-    compat = 3*np.array((
+    compat = 2*np.array((
         # f    l    w    m    p    b
         (0.0, 1.0, 1.0, 1.0, 1.0, 3.0),  # fabric
         (1.0, 0.0, 1.0, 1.0, 1.0, 3.0),  # leather
