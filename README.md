@@ -3,7 +3,7 @@ Various neural network models for PyTorch. Weights were converted from Caffe mod
 
 ## Weights
 
-Weights are stored in an order consistent with PyTorch. Refer to kitnn.utils to see how to read them in. They can be downloaded here: http://bit.ly/2urbzGy
+Weights are stored in an order consistent with PyTorch. Refer to kitnn.utils to see how to read them in. They can be downloaded here: https://github.com/keunhong/kitnn/releases/tag/0.1
 
 ### Material in Context 
 ```
